@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Art Museum - Education Themes</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0a0a; font-family: 'Arial', sans-serif; overflow-x: hidden; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; z-index: 1; }
+        #scroll-content { position: relative; z-index: 2; height: var(--scroll-height, 1000vh); pointer-events: none; }
+        .artwork-info { position: fixed; top: 50%; right: 5%; transform: translateY(-50%); background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 15px; padding: 30px; max-width: 350px; color: white;
+            opacity: 0; transition: opacity 0.5s ease; pointer-events: none; z-index: 10; }
+        .artwork-info.visible { opacity: 1; }
+        .artwork-info h2 { font-size: 24px; margin-bottom: 10px; color: #ff6b6b; }
+        .artwork-info h3 { font-size: 16px; margin-bottom: 15px; color: #4ecdc4; font-weight: normal; }
+        .artwork-info p { line-height: 1.6; font-size: 14px; color: #cccccc; }
+        .progress-bar { position: fixed; top: 0; left: 0; height: 4px; background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1); z-index: 20; transition: width 0.1s ease; }
+        .title-overlay { position: fixed; top: 30px; left: 30px; color: white; z-index: 15; }
+        .title-overlay h1 { font-size: 32px; font-weight: 300; margin-bottom: 5px; color: #ff6b6b; }
+        .title-overlay p { font-size: 14px; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progress-bar"></div>
+    <div class="title-overlay">
+        <h1>Virtual Art Museum</h1>
+        <p>Exploring Education as a Social Problem</p>
+    </div>
+    <div id="canvas-container"></div>
+    <div id="scroll-content"></div>
+    <div class="artwork-info" id="artwork-info">
+        <h2 id="artwork-title">Artwork Title</h2>
+        <h3 id="artwork-artist">Artist Name</h3>
+        <p id="artwork-description">Description</p>
+    </div>
+    <script>
+        const MUSEUM_CONFIG = {
+            ARTWORK_SPACING: 15,
+            CAMERA_HEIGHT: 2,
+            CAMERA_DISTANCE: 5,
+            CAMERA_SMOOTH_FACTOR: 0.05,
+            ENABLE_LIGHTING_ANIMATION: true,
+            SCROLL_HEIGHT_MULTIPLIER: 100
+        };
+        const ARTWORKS = [
+            {
+                title: "Education as a Social Problem",
+                artist: "Conceptual Text",
+                // Full paragraph: conceptual framing of education as right and disparity
+                description: "“Education is a right. Yet, empirically, not all children K–12 receive optimal education. Moreover, there appears to be a disproportionate relationship between marginalized groups and quality of education.” This framing depicts education disparity as a social problem requiring public advocacy and contestation, asserting the claim that education is a right and highlighting uneven access across groups.",
+                imageUrl: "images/education_social_problem.png",
+                width: 4,
+                height: 3
+            },
+            {
+                title: "Social Problem Definition",
+                artist: "Joel Best",
+                // Joel Best’s social construction perspective
+                description: "“We first need to define what a social problem is. Social problems are social constructions–they are socially created as opposed to physically or universally necessitated. When we formulate education as a social problem, we mean we (1) presuppose that education is a right, and (2) argue that certain individuals are not receiving the optimal quality of education. The claim presented is that ‘education is a right’. Although this currently has wide consensus, a claimsmaker needs to contend for this claim through the social problems process.”",
+                imageUrl: "images/social_problem_definition.png",
+                width: 4,
+                height: 3
+            },
+            {
+                title: "Sociological Imagination",
+                artist: "C. Wright Mills",
+                // Mills on sociological imagination applied to education disparity claims
+                description: "“This perspective of being aware beyond one’s own social milieu is defined by sociologist C. Wright Mills as the sociological imagination. When advocating for a certain social problem, it is important to recount Mills’s assessment of the sociological imagination to perceive these claims not merely as appeals to moral absolutes but rather contending presentations of subjective opinions. Hence, the framing of education as a social problem here may not necessarily be entirely prescriptive as it is descriptive of a narrative that certain claimsmakers are attempting to make: educational disparity driven by financial, and more insidiously, ethnic marginalization is a social problem requiring public action.”",
+                imageUrl: "images/sociological_imagination.png",
+                width: 4,
+                height: 3
+            },
+            {
+                title: "Benefit of Diversity",
+                artist: "Wesley Lowry",
+                // Lowry on subjectivity of claims and value of diversity
+                description: "“When discussing social problems, Lowry claims it is important to realize that claims to social problems are subjective; it is not effective to buffet another with a claim to objectivity in a partisan discussion. Lowry also advocates diversity in social discussion, especially journalism, is also important. Further, the benefits of diversity in education should also be extrapolated as useful in sociological discussion and all domains of the advancement of knowledge.”",
+                imageUrl: "images/benefit_of_diversity.png",
+                width: 4,
+                height: 3
+            },
+            {
+                title: "Stereotyping and Labeling",
+                artist: "Victor Rios / Ta-Nehisi Coates",
+                // Victor Rios’s labeling hype and Coates on systemic disparities
+                description: "“Firstly, there is a disproportionate calibre of education that may be driving apparent systemic disparities between marginalized and affluent groups. These can often be driven by ethnic and racial factors. For instance, Ta-Nehisi Coates in his ‘Case for Reparations’ argues that the historical fallout of slavery continues to precipitate lasting systematic disadvantages towards African Americans. Moreover, Victor Rios highlights this social penumbra in the education system, characterizing ‘labeling hype’ in which marginalized students are entrapped under stigmatizing social stereotypes that result in a self-fulfilling prophecy of pressured delinquency and educational surrender.”",
+                imageUrl: "images/stereotyping_and_bullying.png",
+                width: 4,
+                height: 3
+            },
+            {
+                title: "Educational Stratification",
+                artist: "Logan / Steinert / Burkhardt & Connor / DuVernay",
+                // Geographic and penal system biases
+                description: "“Secondly, there is a strong geographic relation between demographics and educational opportunity driven significantly by historical establishments. Due to the entanglement of property tax and education, the quality of education is largely due to where someone lives. This may result in a perpetuation of lower quality education in less affluent neighborhoods. Scholars like Patrick Sharkey show that even Black families with incomes around $100,000 often reside in areas comparable to those of white families earning much less, perpetuating inequality. Additionally, penal judicial systems with ethnic bias, as explored in works by Heinz Steinert and others and documented in Ava DuVernay’s documentary ‘13th’, further prevent social advancement for marginalized communities.”",
+                imageUrl: "images/educational_stratification.png",
+                width: 4,
+                height: 3
+            },
+            {
+                title: "Redlining and Education",
+                artist: "Historical Analysis",
+                // Redlining’s direct impact
+                description: "“Specifically, the historical enforcement of redlining–a phenomenon of intentional discrimination and segregation of Black and White neighborhoods based on the affluence of location–is a strong factor for the establishment of educational disparities for marginalized groups. Research shows that Black families earning $100,000 typically live in neighborhoods inhabited by white families earning only $30,000, linking redlining to persistent inequities in school funding tied to property taxes.”",
+                imageUrl: "images/redlining_and_education.png",
+                width: 4,
+                height: 3
+            },
+            {
+                title: "Privatization of Education",
+                artist: "Comparative Study",
+                // Stanford SCOPE on Finland vs. Sweden; limited benefit from privatization
+                description: "“Thirdly, remedies to address educational disparities through privatization of education do not appear effective. Although some propose the privatization of education to address income and educational disparities due to local income, some claimsmakers argue otherwise. Stanford SCOPE assessments comparing Finland and Sweden show that equity-focused public investment yields more consistent quality than market-based reforms. Finland’s publicly financed model achieves high, equitable outcomes, whereas Sweden’s market-oriented reforms coincided with rising inequality, suggesting limited benefit from privatization in varied contexts.”",
+                imageUrl: "images/privatization_of_education.png",
+                width: 4,
+                height: 3
+            },
+            {
+                title: "Education for Unauthorized Immigrants",
+                artist: "Williams / Caplan",
+                // Ethical arguments for undocumented students
+                description: "“Fourthly, disparities in the quality of education for children of unauthorized immigrants inhibit the social progression of individuals raised in the United States for practically their entire life yet are not technically naturalized. On an ethical perspective, Bryan Caplan and others argue that immigration restrictions contradict universal human rights, implying undocumented students should receive equal educational opportunity. Jean Calterone Williams documents cases of students at collegiate levels testifying to the difficulty of obtaining higher education due to legal and financial barriers despite having been raised in the U.S.”",
+                imageUrl: "images/education_for_unauthorized_immigrants.png",
+                width: 4,
+                height: 3
+            },
+            {
+                title: "Outreach and Democratization",
+                artist: "Policy Proposal",
+                // Proposed solutions
+                description: "“In conclusion, due to the evident demonstration of disparity between quality of education and the lack of empirical utility of privatization, solutions to improve the quality of education in regions of lower economic affluence usually associated with higher populations of marginalized communities appear important to address. Namely, these solutions should be prioritized in the public sphere. This could mean possible K–12 stipend programs for certain regions or provision of public online resources for all students, drawing on evidence from digital equity and outreach studies showing increased access improves outcomes for underserved populations.”",
+                imageUrl: "images/outreach_and_democratization.png",
+                width: 4,
+                height: 3
+            }
+        ];
+        class PaintingFactory {
+            static create(artworkData) {
+                const group = new THREE.Group();
+                const canvasGeometry = new THREE.PlaneGeometry(artworkData.width, artworkData.height);
+                const textureLoader = new THREE.TextureLoader();
+                const texture = textureLoader.load(artworkData.imageUrl);
+                const canvasMaterial = new THREE.MeshLambertMaterial({ map: texture, transparent: false });
+                const canvas = new THREE.Mesh(canvasGeometry, canvasMaterial);
+                canvas.position.z = 0.02;
+                const frameThickness = 0.1;
+                const frameWidth = 0.3;
+                const frameColor = 0x8b4513;
+                const frameMaterial = new THREE.MeshPhongMaterial({ color: frameColor, shininess: 30 });
+                const topFrame = new THREE.Mesh(
+                    new THREE.BoxGeometry(artworkData.width + frameWidth * 2, frameWidth, frameThickness), frameMaterial
+                );
+                topFrame.position.set(0, artworkData.height/2 + frameWidth/2, 0);
+                const bottomFrame = topFrame.clone();
+                bottomFrame.position.set(0, -artworkData.height/2 - frameWidth/2, 0);
+                const sideFrameGeometry = new THREE.BoxGeometry(frameWidth, artworkData.height, frameThickness);
+                const leftFrame = new THREE.Mesh(sideFrameGeometry, frameMaterial);
+                leftFrame.position.set(-artworkData.width/2 - frameWidth/2, 0, 0);
+                const rightFrame = new THREE.Mesh(sideFrameGeometry, frameMaterial);
+                rightFrame.position.set(artworkData.width/2 + frameWidth/2, 0, 0);
+                group.add(canvas, topFrame, bottomFrame, leftFrame, rightFrame);
+                const spotlight = new THREE.SpotLight(0xffffff, 0.5, 10, Math.PI/6, 0.1);
+                spotlight.position.set(0, 0, 3);
+                spotlight.target = canvas;
+                group.add(spotlight);
+                return group;
+            }
+        }
+        class VirtualMuseum {
+            constructor() { this.scene = null; this.camera = null; this.renderer = null; this.artPieces = []; this.currentArtworkIndex = -1; this.isViewingArtwork = false; this.cameraTargetPosition = { x: -10, y: 2, z: 5 }; this.cameraTargetLookAt = { x: 0, y: 0, z: -5 }; this.ambientLight = null; this.init(); }
+            init() { this.setupScene(); this.setupLighting(); this.setupEnvironment(); this.createArtworks(); this.setupEventListeners(); this.updateScrollHeight(); this.animate(); }
+            setupScene() { this.scene = new THREE.Scene(); this.scene.fog = new THREE.Fog(0x0a0a0a, 20, 100);
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setClearColor(0x0a0a0a, 1);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.getElementById('canvas-container').appendChild(this.renderer.domElement);
+                this.camera.position.set(-10, MUSEUM_CONFIG.CAMERA_HEIGHT, MUSEUM_CONFIG.CAMERA_DISTANCE);
+                this.camera.lookAt(0, 0, -5);
+            }
+            setupLighting() { this.ambientLight = new THREE.AmbientLight(0x404040, 0.4); this.scene.add(this.ambientLight);
+                const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                mainLight.position.set(0, 10, 5);
+                mainLight.castShadow = true;
+                mainLight.shadow.mapSize.width = 2048;
+                mainLight.shadow.mapSize.height = 2048;
+                this.scene.add(mainLight);
+                ARTWORKS.forEach((_, i) => {
+                    const ceilingLight = new THREE.PointLight(0xffffff, 0.3, 15);
+                    ceilingLight.position.set(i * MUSEUM_CONFIG.ARTWORK_SPACING, 8, -5);
+                    this.scene.add(ceilingLight);
+                });
+            }
+            setupEnvironment() { const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 20), new THREE.MeshPhongMaterial({ color: 0x2c2c2c, shininess: 100, transparent: true, opacity: 0.9 }));
+                floor.rotation.x = -Math.PI/2; floor.position.y = -3; floor.receiveShadow = true; this.scene.add(floor);
+                const backWall = new THREE.Mesh(new THREE.PlaneGeometry(200, 12), new THREE.MeshLambertMaterial({ color: 0xf5f5f5 }));
+                backWall.position.set(0, 3, -8); backWall.receiveShadow = true; this.scene.add(backWall);
+                const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(200, 20), new THREE.MeshLambertMaterial({ color: 0xffffff }));
+                ceiling.rotation.x = Math.PI/2; ceiling.position.y = 9; this.scene.add(ceiling);
+                this.addArchitecturalDetails(); }
+            addArchitecturalDetails() { const molding = new THREE.Mesh(new THREE.BoxGeometry(200, 0.3, 0.3), new THREE.MeshPhongMaterial({ color: 0xe0e0e0 })); molding.position.set(0, 8.5, -7.8); this.scene.add(molding);
+                const baseboard = new THREE.Mesh(new THREE.BoxGeometry(200, 0.5, 0.2), new THREE.MeshPhongMaterial({ color: 0xe0e0e0 })); baseboard.position.set(0, -2.25, -7.9); this.scene.add(baseboard); }
+            createArtworks() { ARTWORKS.forEach((artworkData, index) => { const paintingGroup = PaintingFactory.create(artworkData);
+                    const position = { x: index * MUSEUM_CONFIG.ARTWORK_SPACING, y: 1, z: -7.5 };
+                    paintingGroup.position.set(position.x, position.y, position.z);
+                    paintingGroup.castShadow = true; paintingGroup.receiveShadow = true;
+                    this.scene.add(paintingGroup);
+                    this.artPieces.push({ mesh: paintingGroup, data: artworkData }); }); }
+            updateScrollHeight() { const scrollHeight = ARTWORKS.length * MUSEUM_CONFIG.SCROLL_HEIGHT_MULTIPLIER; document.documentElement.style.setProperty('--scroll-height', `${scrollHeight}vh`); }
+            setupEventListeners() { window.addEventListener('scroll', () => this.handleScroll()); window.addEventListener('resize', () => this.handleResize()); }
+            handleScroll() { const scroll = window.pageYOffset; const maxScroll = document.body.scrollHeight - window.innerHeight; const scrollProgress = scroll / maxScroll;
+                document.getElementById('progress-bar').style.width = (scrollProgress * 100) + '%';
+                this.updateCameraFromScroll(scrollProgress);
+                this.updateLighting(scrollProgress);
+            }
+            updateLighting(scrollProgress) { if (MUSEUM_CONFIG.ENABLE_LIGHTING_ANIMATION) {
+                    const intensity = 0.3 + Math.sin(scrollProgress * Math.PI * 2) * 0.1;
+                    this.ambientLight.intensity = intensity;
+                }}
+            updateCameraFromScroll(scrollProgress) {
+                const totalArtworks = ARTWORKS.length;
+                const sectionsPerArtwork = 1 / totalArtworks;
+                const currentSection = Math.floor(scrollProgress / sectionsPerArtwork);
+                const sectionProgress = (scrollProgress % sectionsPerArtwork) / sectionsPerArtwork;
+                if (currentSection < totalArtworks) {
+                    const artworkPosition = { x: currentSection * MUSEUM_CONFIG.ARTWORK_SPACING, y: 1, z: -7.5 };
+                    const isInViewingZone = sectionProgress > 0.3 && sectionProgress < 0.7;
+                    if (isInViewingZone && this.currentArtworkIndex !== currentSection) {
+                        this.startViewingArtwork(currentSection, artworkPosition);
+                    } else if (!isInViewingZone && this.currentArtworkIndex === currentSection) {
+                        this.stopViewingArtwork(currentSection, totalArtworks);
+                    }
+                } else { this.handleEndOfGallery(totalArtworks); }
+            }
+            startViewingArtwork(index, position) { this.currentArtworkIndex = index; this.isViewingArtwork = true; this.showArtworkInfo(ARTWORKS[index]);
+                this.cameraTargetPosition = { x: position.x, y: position.y, z: position.z + 4 };
+                this.cameraTargetLookAt = { x: position.x, y: position.y, z: position.z };
+            }
+            stopViewingArtwork(currentSection, totalArtworks) { this.isViewingArtwork = false; this.hideArtworkInfo(); const travelProgress = currentSection / totalArtworks; const totalDistance = (totalArtworks - 1) * MUSEUM_CONFIG.ARTWORK_SPACING;
+                this.cameraTargetPosition = { x: -10 + (travelProgress * totalDistance * 1.2), y: MUSEUM_CONFIG.CAMERA_HEIGHT, z: MUSEUM_CONFIG.CAMERA_DISTANCE };
+                this.cameraTargetLookAt = { x: this.cameraTargetPosition.x + 10, y: 1, z: -7.5 };
+            }
+            handleEndOfGallery(totalArtworks) { this.isViewingArtwork = false; this.hideArtworkInfo(); this.cameraTargetPosition = { x: (totalArtworks - 1) * MUSEUM_CONFIG.ARTWORK_SPACING + 10, y: MUSEUM_CONFIG.CAMERA_HEIGHT, z: MUSEUM_CONFIG.CAMERA_DISTANCE };
+                this.cameraTargetLookAt = { x: this.cameraTargetPosition.x + 10, y: 1, z: -7.5 };
+            }
+            showArtworkInfo(artwork) { const infoElement = document.getElementById('artwork-info'); document.getElementById('artwork-title').textContent = artwork.title;
+                document.getElementById('artwork-artist').textContent = artwork.artist;
+                document.getElementById('artwork-description').textContent = artwork.description;
+                infoElement.classList.add('visible'); }
+            hideArtworkInfo() { document.getElementById('artwork-info').classList.remove('visible'); }
+            updateCamera() { const lerpFactor = MUSEUM_CONFIG.CAMERA_SMOOTH_FACTOR;
+                this.camera.position.x += (this.cameraTargetPosition.x - this.camera.position.x) * lerpFactor;
+                this.camera.position.y += (this.cameraTargetPosition.y - this.camera.position.y) * lerpFactor;
+                this.camera.position.z += (this.cameraTargetPosition.z - this.camera.position.z) * lerpFactor;
+                const currentLookAt = new THREE.Vector3(); this.camera.getWorldDirection(currentLookAt); currentLookAt.add(this.camera.position);
+                const targetLookAt = new THREE.Vector3(this.cameraTargetLookAt.x, this.cameraTargetLookAt.y, this.cameraTargetLookAt.z);
+                currentLookAt.lerp(targetLookAt, lerpFactor);
+                this.camera.lookAt(currentLookAt);
+            }
+            animate() { requestAnimationFrame(() => this.animate()); this.updateCamera(); this.renderer.render(this.scene, this.camera); }
+            handleResize() { this.camera.aspect = window.innerWidth / window.innerHeight; this.camera.updateProjectionMatrix(); this.renderer.setSize(window.innerWidth, window.innerHeight); }
+        }
+        const museum = new VirtualMuseum();
+    </script>
+</body>
+</html>
