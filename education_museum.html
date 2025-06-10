@@ -196,15 +196,15 @@
                     this.scene.add(ceilingLight);
                 });
             }
-            setupEnvironment() { const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 20), new THREE.MeshPhongMaterial({ color: 0x2c2c2c, shininess: 100, transparent: true, opacity: 0.9 }));
+            setupEnvironment() { const floor = new THREE.Mesh(new THREE.PlaneGeometry(300, 20), new THREE.MeshPhongMaterial({ color: 0x2c2c2c, shininess: 100, transparent: true, opacity: 0.9 }));
                 floor.rotation.x = -Math.PI/2; floor.position.y = -3; floor.receiveShadow = true; this.scene.add(floor);
-                const backWall = new THREE.Mesh(new THREE.PlaneGeometry(200, 12), new THREE.MeshLambertMaterial({ color: 0xf5f5f5 }));
+                const backWall = new THREE.Mesh(new THREE.PlaneGeometry(300, 12), new THREE.MeshLambertMaterial({ color: 0xf5f5f5 }));
                 backWall.position.set(0, 3, -8); backWall.receiveShadow = true; this.scene.add(backWall);
-                const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(200, 20), new THREE.MeshLambertMaterial({ color: 0xffffff }));
+                const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(300, 20), new THREE.MeshLambertMaterial({ color: 0xffffff }));
                 ceiling.rotation.x = Math.PI/2; ceiling.position.y = 9; this.scene.add(ceiling);
                 this.addArchitecturalDetails(); }
-            addArchitecturalDetails() { const molding = new THREE.Mesh(new THREE.BoxGeometry(200, 0.3, 0.3), new THREE.MeshPhongMaterial({ color: 0xe0e0e0 })); molding.position.set(0, 8.5, -7.8); this.scene.add(molding);
-                const baseboard = new THREE.Mesh(new THREE.BoxGeometry(200, 0.5, 0.2), new THREE.MeshPhongMaterial({ color: 0xe0e0e0 })); baseboard.position.set(0, -2.25, -7.9); this.scene.add(baseboard); }
+            addArchitecturalDetails() { const molding = new THREE.Mesh(new THREE.BoxGeometry(300, 0.3, 0.3), new THREE.MeshPhongMaterial({ color: 0xe0e0e0 })); molding.position.set(0, 8.5, -7.8); this.scene.add(molding);
+                const baseboard = new THREE.Mesh(new THREE.BoxGeometry(300, 0.5, 0.2), new THREE.MeshPhongMaterial({ color: 0xe0e0e0 })); baseboard.position.set(0, -2.25, -7.9); this.scene.add(baseboard); }
             createArtworks() { ARTWORKS.forEach((artworkData, index) => { const paintingGroup = PaintingFactory.create(artworkData);
                     const position = { x: index * MUSEUM_CONFIG.ARTWORK_SPACING, y: 1, z: -7.5 };
                     paintingGroup.position.set(position.x, position.y, position.z);
